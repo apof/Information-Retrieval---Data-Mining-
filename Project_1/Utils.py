@@ -12,6 +12,10 @@ def read_collection(filename):
 		content = [x.strip() for x in content]
 		return content
 
+def cosine_distance(v1,v2):
+	return 1 - np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
+
+
 def derive_frequencies_from_collection(passage_collection):
 
 	## build a dictionary storing the frequency of each word appeared on the collection
@@ -137,11 +141,16 @@ def inverted_index(query_id,passage_dict,canidates_dict):
 	## preprocess the candidate passages
 	preprocessed_passages = Preprocess.process_data(canidate_passage_list,rm_stopwords = True)
 
+	token_index = 0
+	token_index_dictionary = {}
+
 	## create the inverted index
 	for i in range(len(preprocessed_passages)):
 		for token in preprocessed_passages[i]:
 			## if a passage dictionary does not exist for this token
 			if(inverted_index_dictionary.get(token) == None):
+				token_index_dictionary[token] = token_index
+				token_index += 1
 				inside_dict = {}
 				inside_dict[canidate_ids[i]] = 1
 				inverted_index_dictionary[token] = inside_dict
@@ -158,23 +167,89 @@ def inverted_index(query_id,passage_dict,canidates_dict):
 		candidates_dict[canidate_ids[i]] = preprocessed_passages[i]
 
 
-	return inverted_index_dictionary, candidates_dict
+	return inverted_index_dictionary, candidates_dict, token_index_dictionary
+
+def preprocess_queries(test_query_dict):
+
+	queries_list = []
+	key_list = []
+	for key in test_query_dict:
+		value = test_query_dict.get(key)
+		queries_list.append(value)
+		key_list.append(key)
+
+	## preprocess the candidate queries
+	preprocessed_queries = Preprocess.process_data(queries_list,rm_stopwords = True)
+
+
+	queries_dict = {}
+	for i in range(len(key_list)):
+		queries_dict[key_list[i]] = preprocessed_queries[i]
+
+	return queries_dict
 
 
 ## implement TF-IDF vectorisation for a collection of passages - given the inverted index data structure
-def TFIDF_vectorisation(query_id,inverted_index,candidates_dict):
+def TFIDF_vectorisation(query_id,query_dict,inverted_index,candidates_dict, token_index_dictionary):
+
+	query_vectorised_representation = np.zeros((len(token_index_dictionary)))
+
+	## find the tfidf representation of the query
+
+	## get the specific query
+	query_text = query_dict.get(query_id)
+
+	## compute the frequency of each term of the query
+	query_term_freq = {}
+	for token in query_text:
+		if(query_term_freq.get(token) == None):
+			query_term_freq[token] = 1
+		else:
+			query_term_freq[token] += 1
+
+
+	for token in query_text:
+
+		## if the token exists in the candidate passage corpus
+		if(token_index_dictionary.get(token) != None):
+
+			# calculate term frequency
+			tf = query_term_freq.get(token)/len(query_text)
+
+			## compute how many passages contain this term
+			term_occur = inverted_index.get(token)
+			if(term_occur == None):
+				term_occur = 0
+			else:
+				term_occur = len(term_occur)
+
+			## calculate inverse document frequency (number of docs / how many docs contain the term)
+			idf = np.log(len(candidates_dict)/(term_occur + 1))
+
+			## compute TF-IDF for the specific token
+			tfidf = tf*idf
+
+			## save it on the respective position of the representation -- each token on the corpus has a unique position
+			query_vectorised_representation[token_index_dictionary.get(token)] = tfidf
+
 	
 	ids_list = []
 	vectorised_representations = []
 
 	## create representations for each of the candidate passages
+
+	## for each passage
 	for passage_id in candidates_dict:
 		ids_list.append(passage_id)
 		passage = candidates_dict.get(passage_id)
-		passage_representation = []
+		passage_representation = np.zeros((len(token_index_dictionary)))
+
+		## for each token in the passage
 		for token in passage:
 
 			## frequency of term in the documnet
+
+			## retrieve how many times does the token appear on the specific passage
 			freq = inverted_index.get(token).get(passage_id)
 			if(freq == None):
 				freq = 0
@@ -188,13 +263,13 @@ def TFIDF_vectorisation(query_id,inverted_index,candidates_dict):
 			else:
 				term_occur = len(term_occur)
 
-			## calculate inverse document frequency
-			idf = len(candidates_dict)/(term_occur + 1)
+			## calculate inverse document frequency (number of docs / how many docs contain the term)
+			idf = np.log(len(candidates_dict)/(term_occur + 1))
 
 			tfidf = tf*idf
 
-			passage_representation.append(tfidf)
+			passage_representation[token_index_dictionary.get(token)] = tfidf
 
 		vectorised_representations.append(passage_representation)
 
-	return vectorised_representations, ids_list
+	return np.array(vectorised_representations), ids_list, query_vectorised_representation
