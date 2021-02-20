@@ -15,6 +15,50 @@ def Vector_Model(passage_vectors, query_vector, passage_ids):
 	## return the top 100 items
 	return sorted_ranking[0:100]
 
+def Language_Model(query_key,queries_dict,inverted_index,preprocessed_candidates_dict,smoothing_type,param):
+
+	# the given query
+	query = queries_dict.get(query_key)
+
+	ranking = []
+
+	for passage_key in preprocessed_candidates_dict:
+		## the length of the passage to compute a score for
+		passage_length = len(preprocessed_candidates_dict.get(passage_key))
+		score = 0
+		for query_token in query:
+
+			## get the passages that contain this query token
+			psg_dict = inverted_index.get(query_token)
+
+			## if the query token does not exist in the passage collection then continue
+			if(psg_dict == None):
+				continue
+
+			## compute the occurencies of the specific query token in the passage
+			fqd = psg_dict.get(passage_key)
+			if(fqd == None):
+				fqd = 0
+
+			## compute cqi --> how many times the query term exists in the entire collection
+			cqi = 0
+			for k in psg_dict:
+				cqi += psg_dict.get(k)
+
+			if(smoothing_type == 'Laplace'):
+				score += np.log((fqd + 1)/(len(inverted_index) + passage_length))
+			elif(smoothing_type == 'Dirichlet'):
+				score += np.log((passage_length/(passage_length + param))*(fqd/passage_length) + (param/(param + passage_length))*(cqi/len(inverted_index)))
+			elif(smoothing_type == 'JelineqMercer'):
+				score += np.log(param*(fqd/passage_length) + (1-param)*(cqi/len(inverted_index)))
+
+		ranking.append((passage_key,score))
+
+	## sort the ranking score from higher to lower
+	sorted_ranking = sorted(ranking, key=lambda tup: tup[1], reverse = True)
+
+	return sorted_ranking[0:100]
+
 def BM25_Model(query_key,queries_dict,inverted_index,preprocessed_candidates_dict,k = 1.5, b = 0.75):
 
 	## compute the average document length in the candidates collection
@@ -64,7 +108,7 @@ def BM25_Model(query_key,queries_dict,inverted_index,preprocessed_candidates_dic
 	return sorted_ranking[0:100]
 
 
-def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type):
+def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,hyperparam = None):
 
 	## for each test query
 	for key in queries_dict:
@@ -82,6 +126,8 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type)
 			ranking = Vector_Model(passage_vectors, query_vector, passage_ids)
 		elif(model_type == 'BM25'):
 			ranking = BM25_Model(key,queries_dict,inverted_index,preprocessed_candidates_dict)
+		else:
+			ranking = Language_Model(key,queries_dict,inverted_index,preprocessed_candidates_dict,model_type,hyperparam)
 
 		print(ranking)
 
