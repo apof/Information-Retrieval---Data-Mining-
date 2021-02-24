@@ -53,10 +53,10 @@ def plot_word_frequencies(ordered_dictionary,total_words):
 		## store (rank,frequency,proba)
 		tuple_list.append((key,rank,value,float(value/total_words)))
 		frequency_list.append(float(value/total_words))
-		log_frequency_list.append(np.log(float(value)))
 		rank_list.append(rank)
-		log_ranked_list.append(np.log(rank))
-		mult.append(float(value/total_words)*rank)
+		log_frequency_list.append(np.log(float(frequency_list[-1])))
+		log_ranked_list.append(np.log(rank_list[-1]))
+		mult.append(float(frequency_list[-1])*rank_list[-1])
 		rank += 1
 
 

@@ -5,7 +5,7 @@ nltk.download('stopwords')
 
 ## preprocess the passages tokenising each sentence, convering to lower case, excluding non alphabetic words
 ## removing stopwords and stemming
-def process_data(data,rm_stopwords = False):
+def process_data(data,rm_stopwords = False, lemm = True):
 
 	stop_words = set(stopwords.words('english'))
 
@@ -28,10 +28,14 @@ def process_data(data,rm_stopwords = False):
 			filtered_sentence = only_alpha_sentence
 
 		lemmatized_sentence = []
-		## stemming
-		lemmatizer = WordNetLemmatizer()
-		for word in filtered_sentence:
-			lemmatized_sentence.append(lemmatizer.lemmatize(word))
+
+		if(lemm == True):
+			## stemming
+			lemmatizer = WordNetLemmatizer()
+			for word in filtered_sentence:
+				lemmatized_sentence.append(lemmatizer.lemmatize(word))
+		else:
+			lemmatized_sentence = filtered_sentence
 
 		processed_sentences.append(lemmatized_sentence)
 	return processed_sentences

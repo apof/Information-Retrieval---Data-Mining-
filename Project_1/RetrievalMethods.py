@@ -51,6 +51,8 @@ def Language_Model(query_key,queries_dict,inverted_index,preprocessed_candidates
 				score += np.log((passage_length/(passage_length + param))*(fqd/passage_length) + (param/(param + passage_length))*(cqi/len(inverted_index)))
 			elif(smoothing_type == 'JelineqMercer'):
 				score += np.log(param*(fqd/passage_length) + (1-param)*(cqi/len(inverted_index)))
+			elif(smoothing_type == 'Lindstone'):
+				score += np.log((fqd + param)/(param*len(inverted_index) + passage_length))
 
 		ranking.append((passage_key,score))
 
