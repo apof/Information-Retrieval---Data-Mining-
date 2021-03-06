@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import Preprocess
 from sklearn.linear_model import LinearRegression
-
+import csv
 
 ## read the document collection line by line
 def read_collection(filename):
@@ -16,6 +16,29 @@ def read_collection(filename):
 ## cosine distance between two vectors
 def cosine_distance(v1,v2):
 	return 1 - np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
+
+def write_results(file_name, version, key, model_type, ranking, flag):
+
+	f_name = model_type + ".txt"
+	## open a csv file for writing
+
+	if(flag == 1):
+		w = csv.writer(open(file_name + f_name, "w"))
+	else:
+		w = csv.writer(open(file_name + f_name, "a"))
+
+	cols = ['query_id', 'version', 'passage_id', 'rank', 'score', 'method']
+
+	if(flag == 1):
+		w.writerow(cols)
+
+	index = 1
+	for (passage_id,score) in ranking:
+		row = [str(key), version, str(int(passage_id)), str(index) , str(score), model_type]
+		w.writerow(row)
+		index += 1
+
+
 
 
 def derive_frequencies_from_collection(passage_collection):

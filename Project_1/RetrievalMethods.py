@@ -45,13 +45,13 @@ def Language_Model(query_key,queries_dict,inverted_index,preprocessed_candidates
 			for k in psg_dict:
 				cqi += psg_dict.get(k)
 
-			if(smoothing_type == 'Laplace'):
+			if(smoothing_type == 'LM-Laplace'):
 				score += np.log((fqd + 1)/(len(inverted_index) + passage_length))
-			elif(smoothing_type == 'Dirichlet'):
+			elif(smoothing_type == 'LM-Dirichlet'):
 				score += np.log((passage_length/(passage_length + param))*(fqd/passage_length) + (param/(param + passage_length))*(cqi/len(inverted_index)))
-			elif(smoothing_type == 'JelineqMercer'):
+			elif(smoothing_type == 'LM-JelineqMercer'):
 				score += np.log(param*(fqd/passage_length) + (1-param)*(cqi/len(inverted_index)))
-			elif(smoothing_type == 'Lindstone'):
+			elif(smoothing_type == 'LM-Lindstone'):
 				score += np.log((fqd + param)/(param*len(inverted_index) + passage_length))
 
 		ranking.append((passage_key,score))
@@ -112,19 +112,21 @@ def BM25_Model(query_key,queries_dict,inverted_index,preprocessed_candidates_dic
 
 def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,hyperparam = None):
 
+	index = 0
+
 	## for each test query
 	for key in queries_dict:
 
 
-		print("Processing query " + str(key))
+		print("Processing query " + str(key) + " --> " + str(index + 1))
 
 		## create an inverted index for the specific query based on the candidate passages
 		inverted_index, preprocessed_candidates_dict, token_index_dictionary = Utils.inverted_index(key,passages_dict,query_passage_dict)
 	
-		print(inverted_index)
+		#print(inverted_index)
 
 		ranking = None
-		if(model_type == 'VM'):
+		if(model_type == 'VS'):
 			## create a vector representation for both the query and the candidate passages
 			passage_vectors, passage_ids, query_vector = Utils.TFIDF_vectorisation(key,queries_dict,inverted_index,preprocessed_candidates_dict, token_index_dictionary)
 			## retrieve documents based on vector model
@@ -134,7 +136,12 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,
 		else:
 			ranking = Language_Model(key,queries_dict,inverted_index,preprocessed_candidates_dict,model_type,hyperparam)
 
-		print(ranking)
+		#print(ranking)
 
+		flag = 0
+		if(index == 0):
+			flag = 1
 
-		return
+		Utils.write_results('../Results/', 'A1', key, model_type, ranking,flag)
+
+		index += 1
