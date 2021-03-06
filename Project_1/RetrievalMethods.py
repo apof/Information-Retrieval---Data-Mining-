@@ -115,11 +115,14 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,
 	## for each test query
 	for key in queries_dict:
 
+
 		print("Processing query " + str(key))
 
 		## create an inverted index for the specific query based on the candidate passages
 		inverted_index, preprocessed_candidates_dict, token_index_dictionary = Utils.inverted_index(key,passages_dict,query_passage_dict)
 	
+		print(inverted_index)
+
 		ranking = None
 		if(model_type == 'VM'):
 			## create a vector representation for both the query and the candidate passages

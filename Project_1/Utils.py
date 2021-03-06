@@ -5,6 +5,7 @@ import Preprocess
 from sklearn.linear_model import LinearRegression
 
 
+## read the document collection line by line
 def read_collection(filename):
 	with open(filename) as f:
 		content = f.readlines()
@@ -12,6 +13,7 @@ def read_collection(filename):
 		content = [x.strip() for x in content]
 		return content
 
+## cosine distance between two vectors
 def cosine_distance(v1,v2):
 	return 1 - np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
 
@@ -94,11 +96,12 @@ def plot_word_frequencies(ordered_dictionary,total_words):
 	print("Std: " + str(np.std(np.array(mult))))
 
 
-
+## split the top 1000 file in dictionaries
 def get_dictionaries(df1,df2):
 
 	query_dict = {}
 	passage_dict = {}
+	## contains which passages are already retrieved for each query
 	canidates_dict = {}
 
 	for index, row in df1.iterrows():
@@ -130,10 +133,13 @@ def get_dictionaries(df1,df2):
 ## the data structure is created based on the candidate passages that have already been retrieved for the query
 def inverted_index(query_id,passage_dict,canidates_dict):
 
+	## create an inveretd index for each query based on the already retrieved documents for the specific query
+
 	inverted_index_dictionary = {}
-	## get the passages ids
+	## get the already retrieved passages ids
 	canidate_ids = canidates_dict.get(query_id)
 
+	## the list of the candidate passages
 	canidate_passage_list = []
 	for passage_id in canidate_ids:
 		canidate_passage_list.append(passage_dict.get(passage_id))
@@ -145,9 +151,13 @@ def inverted_index(query_id,passage_dict,canidates_dict):
 	token_index_dictionary = {}
 
 	## create the inverted index
+
+	## for every preprocessed passage
 	for i in range(len(preprocessed_passages)):
+		## for every token of the passage
 		for token in preprocessed_passages[i]:
 			## if a passage dictionary does not exist for this token
+			## a new token found in the corpus
 			if(inverted_index_dictionary.get(token) == None):
 				token_index_dictionary[token] = token_index
 				token_index += 1
@@ -156,9 +166,12 @@ def inverted_index(query_id,passage_dict,canidates_dict):
 				inverted_index_dictionary[token] = inside_dict
 			## if a passage dictionary already exists for this token update it
 			else:
+				## get the dictionary inside
 				inside_dict = inverted_index_dictionary.get(token)
+				## if the specific token doesnt exist already in this document
 				if(inside_dict.get(canidate_ids[i]) == None):
 					inside_dict[canidate_ids[i]] = 1
+				## if already exists in this document
 				else:
 					inside_dict[canidate_ids[i]] += 1
 

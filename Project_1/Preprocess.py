@@ -13,24 +13,20 @@ def process_data(data,rm_stopwords = False, lemm = True):
 
 	stop_words = set(stopwords.words('english'))
 
+	## remove punctuation
 	tokenizer = RegexpTokenizer(r'\w+')
-
 
 	processed_sentences = []
 	for sentence in data:
 
 		## tokenise each sentence
-		#tokenised_sentence = sentence.split(" ")
-
 		tokenised_sentence = tokenizer.tokenize(sentence)
 
 		##convert to lower case
 		sentence = [w.lower() for w in tokenised_sentence]
 
 		##exclude non alphabetic words
-		#only_alpha_sentence = [word for word in sentence if word.isalpha()]
-
-		only_alpha_sentence = sentence
+		only_alpha_sentence = [word for word in sentence if word.isalpha()]
 		
 		## remove stop words
 		if(rm_stopwords == True):
