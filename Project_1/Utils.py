@@ -15,7 +15,7 @@ def read_collection(filename):
 
 ## cosine distance between two vectors
 def cosine_distance(v1,v2):
-	return 1 - np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
+	return np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
 
 def write_results(file_name, version, key, model_type, ranking, flag):
 
