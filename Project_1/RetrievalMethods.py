@@ -10,7 +10,7 @@ def Vector_Model(passage_vectors, query_vector, passage_ids):
 		ranking_list.append((passage_ids[i],Utils.cosine_distance(passage_vectors[i],query_vector)))
 
 	## sort the cosine distance from lower to higher
-	sorted_ranking = sorted(ranking_list, key=lambda tup: tup[1])
+	sorted_ranking = sorted(ranking_list, key=lambda tup: tup[1], reverse = True)
 
 	## return the top 100 items
 	return sorted_ranking[0:100]
@@ -100,7 +100,7 @@ def BM25_Model(query_key,queries_dict,inverted_index,preprocessed_candidates_dic
 			## compute inverse document frequency
 			idf = np.log((total_passage_n - qn + 0.5)/(qn + 0.5) + 1)
 
-			BM25_score += idf * ( fqd * (k + 1)/(fqd + k + (1 - b + b*(passage_length/avgDL)))) 
+			BM25_score += idf * ( fqd * (k + 1)/(fqd + k*(1 - b + b*(passage_length/avgDL)))) 
 
 		ranking.append((passage_key,BM25_score))
 
@@ -117,13 +117,15 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,
 	## for each test query
 	for key in queries_dict:
 
+		key = 1112389.0
+
 
 		print("Processing query " + str(key) + " --> " + str(index + 1))
 
 		## create an inverted index for the specific query based on the candidate passages
 		inverted_index, preprocessed_candidates_dict, token_index_dictionary = Utils.inverted_index(key,passages_dict,query_passage_dict)
 	
-		#print(inverted_index)
+		print(inverted_index)
 
 		ranking = None
 		if(model_type == 'VS'):
@@ -145,3 +147,5 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,
 		Utils.write_results('../Results/', 'A1', key, model_type, ranking,flag)
 
 		index += 1
+
+		return
