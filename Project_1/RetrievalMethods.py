@@ -110,23 +110,36 @@ def BM25_Model(query_key,queries_dict,inverted_index,preprocessed_candidates_dic
 	return sorted_ranking[0:100]
 
 
-def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,hyperparam = None):
+def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,hyperparam = None, flag = 'query'):
 
 	index = 0
+
+	inverted_index = None
+	token_index_dictionary = None
+	## create an inverted index based on the whole corpus of passages
+	if(flag!='query'):
+		preprocessed_passages, passage_ids,_ = Utils.preprocess_passages(None,passages_dict,query_passage_dict,'corpus')
+		## create an inverted index for the specific query based on the candidate passages
+		inverted_index, token_index_dictionary = Utils.inverted_index(preprocessed_passages,passage_ids)
 
 	## for each test query
 	for key in queries_dict:
 
-		key = 1112389.0
-
+		key = 1112389
 
 		print("Processing query " + str(key) + " --> " + str(index + 1))
 
-		## create an inverted index for the specific query based on the candidate passages
-		inverted_index, preprocessed_candidates_dict, token_index_dictionary = Utils.inverted_index(key,passages_dict,query_passage_dict)
-	
-		print(inverted_index)
+		## get the correct passages related to this query and preprocess them
+		## create the inverted index based only on the already retrieved passages
+		preprocessed_passages, ids, preprocessed_candidates_dict = Utils.preprocess_passages(key,passages_dict,query_passage_dict,'query')
 
+		if(flag == 'query'):
+			## create an inverted index for the specific query based on the candidate passages
+			inverted_index, token_index_dictionary = Utils.inverted_index(preprocessed_passages,ids)
+			passage_ids = ids
+
+		print(inverted_index)
+	
 		ranking = None
 		if(model_type == 'VS'):
 			## create a vector representation for both the query and the candidate passages

@@ -39,8 +39,6 @@ def write_results(file_name, version, key, model_type, ranking, flag):
 		index += 1
 
 
-
-
 def derive_frequencies_from_collection(passage_collection):
 
 	## build a dictionary storing the frequency of each word appeared on the collection
@@ -122,23 +120,30 @@ def plot_word_frequencies(ordered_dictionary,total_words):
 ## split the top 1000 file in dictionaries
 def get_dictionaries(df1,df2):
 
+	## queries dictionary: key-->query id / value --> the raw query text
 	query_dict = {}
+	## all passage dictionary: key --> passage id / value --> the raw passage text 
 	passage_dict = {}
 	## contains which passages are already retrieved for each query
+	## candidate passage dictionary: key --> passage id / value --> the raw passage text 
 	canidates_dict = {}
+
+	## a dictionary of the unique passage ids
+	unique_passage_ids_dict = {}
+	unique_passage_ids_list = []
 
 	for index, row in df1.iterrows():
 		qid = row['qid']
 		pid = row['pid']
 		query = row['query']
 		passage = row['passage']
-		## create a query index
+		## store the query
 		if(query_dict.get(qid) == None):
 			query_dict[qid] = query
-		## create a passage index
+		## store the passage
 		if(passage_dict.get(pid) == None):
 			passage_dict[pid] = passage
-		## create a query canidate passages index
+		## store the candidate passage
 		if(canidates_dict.get(qid) == None):
 			canidates_dict[qid] = [pid]
 		else:
@@ -146,29 +151,65 @@ def get_dictionaries(df1,df2):
 			candidates_list.append(pid)
 			canidates_dict[qid] = candidates_list
 
+		## store the passage id if it does not alreday exist
+		if(unique_passage_ids_dict.get(pid) == None):
+			unique_passage_ids_dict[pid] = 1
+			unique_passage_ids_list.append(pid)
+
+		canidates_dict['all_query'] = unique_passage_ids_list
+
+
+	## the dictionary of the test queries
 	test_query_dict = {}
 	for index, row in df2.iterrows():
 		test_query_dict[row['qid']] = row['query']
 
-	return query_dict, test_query_dict, passage_dict, canidates_dict
+	return test_query_dict, passage_dict, canidates_dict
+
+def preprocess_passages(query_id,passage_dict,candidates_dict,flag):
+
+	if(flag == 'query'):
+
+		## flag specifies if the inverted index is going to be created for a specific query using
+		## the already retrieved passages for this query or based on the whole corpus
+
+		## get the already retrieved passages ids
+		candidate_ids = candidates_dict.get(query_id)
+		## the list of the candidate passages
+		canidate_passage_list = []
+		for passage_id in candidate_ids:
+			canidate_passage_list.append(passage_dict.get(passage_id))
+		## preprocess the candidate passages
+		preprocessed_canidate_passages = Preprocess.process_data(canidate_passage_list,rm_stopwords = True)
+
+		## a dictionary of the candiadte passages to be reranked
+		preprocessed_candidates_dict = {}
+		for i in range(len(candidate_ids)):
+			preprocessed_candidates_dict[candidate_ids[i]] = preprocessed_canidate_passages[i]
+
+	
+		return preprocessed_canidate_passages, candidate_ids, preprocessed_candidates_dict
+
+	else:
+
+		## get the ids of all the unique passages
+		all_passage_ids = candidates_dict.get('all_query')
+		## the list of the candidate passages
+		all_passage_list = []
+		for passage_id in all_passage_ids:
+			all_passage_list.append(passage_dict.get(passage_id))
+		## preprocess the candidate passages
+		preprocessed_all_passages = Preprocess.process_data(all_passage_list,rm_stopwords = True)
+
+		return preprocessed_all_passages, all_passage_ids,{}
+	
 
 ## create an inverted index given a query id
 ## the data structure is created based on the candidate passages that have already been retrieved for the query
-def inverted_index(query_id,passage_dict,canidates_dict):
-
-	## create an inveretd index for each query based on the already retrieved documents for the specific query
+## or the hole corpus as an alternative
+def inverted_index(preprocessed_passages, candidate_ids):
 
 	inverted_index_dictionary = {}
-	## get the already retrieved passages ids
-	canidate_ids = canidates_dict.get(query_id)
-
-	## the list of the candidate passages
-	canidate_passage_list = []
-	for passage_id in canidate_ids:
-		canidate_passage_list.append(passage_dict.get(passage_id))
-
-	## preprocess the candidate passages
-	preprocessed_passages = Preprocess.process_data(canidate_passage_list,rm_stopwords = True)
 
 	token_index = 0
 	token_index_dictionary = {}
@@ -185,25 +226,20 @@ def inverted_index(query_id,passage_dict,canidates_dict):
 				token_index_dictionary[token] = token_index
 				token_index += 1
 				inside_dict = {}
-				inside_dict[canidate_ids[i]] = 1
+				inside_dict[candidate_ids[i]] = 1
 				inverted_index_dictionary[token] = inside_dict
 			## if a passage dictionary already exists for this token update it
 			else:
 				## get the dictionary inside
 				inside_dict = inverted_index_dictionary.get(token)
 				## if the specific token doesnt exist already in this document
-				if(inside_dict.get(canidate_ids[i]) == None):
-					inside_dict[canidate_ids[i]] = 1
+				if(inside_dict.get(candidate_ids[i]) == None):
+					inside_dict[candidate_ids[i]] = 1
 				## if already exists in this document
 				else:
-					inside_dict[canidate_ids[i]] += 1
+					inside_dict[candidate_ids[i]] += 1
 
-	candidates_dict = {}
-	for i in range(len(canidate_ids)):
-		candidates_dict[canidate_ids[i]] = preprocessed_passages[i]
-
-
-	return inverted_index_dictionary, candidates_dict, token_index_dictionary
+	return inverted_index_dictionary, token_index_dictionary
 
 def preprocess_queries(test_query_dict):
 
@@ -265,10 +301,15 @@ def TFIDF_vectorisation(query_id,query_dict,inverted_index,candidates_dict, toke
 			## compute TF-IDF for the specific token
 			tfidf = tf*idf
 
+			#print("token " + token + " tf-idf " + str(tf) + "-" + str(idf))
+
 			## save it on the respective position of the representation -- each token on the corpus has a unique position
 			query_vectorised_representation[token_index_dictionary.get(token)] = tfidf
 
 	
+	#print(query_vectorised_representation)
+	#print(query_vectorised_representation.shape)
+
 	ids_list = []
 	vectorised_representations = []
 
@@ -279,6 +320,8 @@ def TFIDF_vectorisation(query_id,query_dict,inverted_index,candidates_dict, toke
 		ids_list.append(passage_id)
 		passage = candidates_dict.get(passage_id)
 		passage_representation = np.zeros((len(token_index_dictionary)))
+
+		#print("passage id: " + str(passage_id))
 
 		## for each token in the passage
 		for token in passage:
@@ -304,8 +347,17 @@ def TFIDF_vectorisation(query_id,query_dict,inverted_index,candidates_dict, toke
 
 			tfidf = tf*idf
 
+			#if(passage_id == 8138768):
+			#	print("token " + token + " tf-idf " + str(tf) + "-" + str(idf))
+
 			passage_representation[token_index_dictionary.get(token)] = tfidf
 
+		
+		#print(passage_representation)
+		#print(passage_representation.shape)
+
 		vectorised_representations.append(passage_representation)
+
+		
 
 	return np.array(vectorised_representations), ids_list, query_vectorised_representation
