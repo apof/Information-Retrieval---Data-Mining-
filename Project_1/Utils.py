@@ -17,6 +17,9 @@ def read_collection(filename):
 def cosine_distance(v1,v2):
 	return np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))
 
+def get_collection_statistics(passages):
+	return
+
 def write_results(file_name, version, key, model_type, ranking, flag):
 
 	f_name = model_type + ".txt"
