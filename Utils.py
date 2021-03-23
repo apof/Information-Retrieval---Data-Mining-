@@ -34,7 +34,7 @@ def write_results(file_name, version, key, model_type, ranking, flag):
 
 	index = 1
 	for (passage_id,score) in ranking:
-		row = [str(key), version, str(int(passage_id)), str(index) , str(score), model_type]
+		row = [str(key) + " " +  version + " " + str(int(passage_id)) + " " +  str(index) + " " +  str(score) + " " + model_type]
 		w.writerow(row)
 		index += 1
 
