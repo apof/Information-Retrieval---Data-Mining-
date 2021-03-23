@@ -117,9 +117,9 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,
 	## for each test query
 	for key in queries_dict:
 
-		key = 1112389
+		#key = 1112389
 
-		print("Processing query " + str(key) + " --> " + str(index + 1))
+		#print("Processing query " + str(key) + " --> " + str(index + 1))
 
 		## get the correct passages related to this query and preprocess them
 		## create the inverted index based only on the already retrieved passages
@@ -127,7 +127,7 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,
 		## create an inverted index for the specific query based on the candidate passages
 		inverted_index, token_index_dictionary = Utils.inverted_index(preprocessed_passages,passage_ids)
 
-		print(inverted_index)
+		#print(inverted_index)
 	
 		ranking = None
 		if(model_type == 'VS'):
@@ -150,4 +150,4 @@ def Retrieval_Pipeline(queries_dict,passages_dict,query_passage_dict,model_type,
 
 		index += 1
 
-		return
+		#return
